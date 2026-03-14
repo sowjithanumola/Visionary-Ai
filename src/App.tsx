@@ -52,6 +52,9 @@ export default function App() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.error?.includes("GEMINI_API_KEY")) {
+          throw new Error("API Key Missing: Please add GEMINI_API_KEY to your Vercel Environment Variables.");
+        }
         throw new Error(data.error || `Server error: ${response.status}`);
       }
 

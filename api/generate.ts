@@ -19,20 +19,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
+    console.error("GEMINI_API_KEY is missing from environment variables.");
+    return res.status(401).json({ error: "GEMINI_API_KEY is not configured on the server. Please add it to Vercel Environment Variables." });
   }
 
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image-preview',
+      model: 'gemini-2.5-flash-image',
       contents: {
         parts: [{ text: prompt }],
       },
       config: {
         imageConfig: {
           aspectRatio: aspectRatio || "1:1",
-          imageSize: "1K"
         },
       },
     });
