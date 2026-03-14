@@ -52,10 +52,27 @@ export default function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.error?.includes("GEMINI_API_KEY") || data.error?.includes("MY_GEMINI_API_KEY")) {
+        let errorMessage = data.error || `Server error: ${response.status}`;
+        
+        // If the error is a JSON string (common with Gemini API errors passed through), try to parse it
+        try {
+          const parsedError = JSON.parse(errorMessage);
+          if (parsedError.error?.message) {
+            errorMessage = parsedError.error.message;
+          }
+        } catch (e) {
+          // Not a JSON string, keep original
+        }
+
+        if (errorMessage.includes("GEMINI_API_KEY") || errorMessage.includes("MY_GEMINI_API_KEY")) {
           throw new Error("API Key Missing: Please ensure GEMINI_API_KEY or MY_GEMINI_API_KEY is added to your Vercel Environment Variables.");
         }
-        throw new Error(data.error || `Server error: ${response.status}`);
+        
+        if (errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+          throw new Error("Quota Exceeded: Your Gemini API key has hit its limit. Please wait a few minutes or check your billing at ai.google.dev.");
+        }
+
+        throw new Error(errorMessage);
       }
 
       setGeneratedImage(data.imageUrl);

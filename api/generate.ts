@@ -26,13 +26,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3.1-flash-image-preview',
       contents: {
         parts: [{ text: prompt }],
       },
       config: {
         imageConfig: {
           aspectRatio: aspectRatio || "1:1",
+          imageSize: "1K"
         },
       },
     });
