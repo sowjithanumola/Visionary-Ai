@@ -42,14 +42,22 @@ export default function App() {
         body: JSON.stringify({ prompt, aspectRatio }),
       });
 
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Non-JSON response received:", text);
+        throw new Error(`Server returned an unexpected response format. Status: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate image");
+        throw new Error(data.error || `Server error: ${response.status}`);
       }
 
       setGeneratedImage(data.imageUrl);
     } catch (err: any) {
+      console.error("Generation error:", err);
       setError(err.message || "Failed to generate image. Please try again.");
     } finally {
       setIsGenerating(false);
