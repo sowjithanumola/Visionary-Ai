@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Prompt is required" });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.MY_GEMINI_API_KEY;
+  const apiKey = process.env.apiKey|| process.env.apiKey;
   if (!apiKey) {
     console.error("API Key is missing from environment variables (checked GEMINI_API_KEY and MY_GEMINI_API_KEY).");
     return res.status(401).json({ error: "API Key is not configured on the server. Please ensure GEMINI_API_KEY or MY_GEMINI_API_KEY is added to Vercel Environment Variables." });
