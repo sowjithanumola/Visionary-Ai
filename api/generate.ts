@@ -1,62 +1,55 @@
-import { GoogleGenAI } from "@google/genai";
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import OpenAI from "openai";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
+  // Handle CORS
+  if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { prompt, aspectRatio } = req.body;
+  const { prompt, size } = req.body;
 
   if (!prompt) {
     return res.status(400).json({ error: "Prompt is required" });
   }
 
-  const apiKey = process.env.apiKey|| process.env.apiKey;
+  const apiKey = process.env.OPENAI_API_KEY;
+
   if (!apiKey) {
-    console.error("API Key is missing from environment variables (checked GEMINI_API_KEY and MY_GEMINI_API_KEY).");
-    return res.status(401).json({ error: "API Key is not configured on the server. Please ensure GEMINI_API_KEY or MY_GEMINI_API_KEY is added to Vercel Environment Variables." });
+    return res.status(401).json({
+      error: "OPENAI_API_KEY not found in Vercel Environment Variables"
+    });
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image-preview',
-      contents: {
-        parts: [{ text: prompt }],
-      },
-      config: {
-        imageConfig: {
-          aspectRatio: aspectRatio || "1:1",
-          imageSize: "1K"
-        },
-      },
+    const openai = new OpenAI({
+      apiKey: apiKey,
     });
 
-    if (!response.candidates || response.candidates.length === 0) {
-      throw new Error("No image generated.");
+    const response = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: prompt,
+      size: size || "1024x1024"
+    });
+
+    const imageBase64 = response.data?.[0]?.b64_json;
+
+    if (!imageBase64) {
+      throw new Error("No image generated");
     }
 
-    let imageData = null;
-    for (const part of response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        imageData = `data:image/png;base64,${part.inlineData.data}`;
-        break;
-      }
-    }
+    const imageUrl = `data:image/png;base64,${imageBase64}`;
 
-    if (!imageData) {
-      throw new Error("No image data found in response.");
-    }
+    return res.status(200).json({ imageUrl });
 
-    res.status(200).json({ imageUrl: imageData });
   } catch (error: any) {
-    console.error("Server-side generation error:", error);
-    res.status(500).json({ error: error.message || "Failed to generate image" });
+    console.error(error);
+    return res.status(500).json({
+      error: error.message || "Failed to generate image"
+    });
   }
 }
